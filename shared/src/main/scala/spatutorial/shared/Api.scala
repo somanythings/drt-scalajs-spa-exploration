@@ -2,13 +2,56 @@ package spatutorial.shared
 
 import java.util.Date
 
+import spatutorial.shared.FlightChanges.ChangeReason
+
 import scala.collection.immutable._
 import spatutorial.shared.FlightsApi._
 
-import scala.List
+import scala.{Predef, List}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.immutable.{IndexedSeq, Map, Seq}
+
+
+case class FlightChange(reason: String,
+                        apiFlight: ApiFlight,
+                        optOldFlight: Option[ApiFlight] = None)
+
+case class FlightChanges(flightChanges: Seq[FlightChange])
+
+object FlightChanges {
+  type ChangeReason = String
+  val Update = "Update"
+  val Add = "Add"
+
+  def diffFlightChanges(currFlightsById: Map[Int, ApiFlight], newFlights: List[ApiFlight]): FlightChanges = {
+    val inboundFlightIds: Set[Int] = newFlights.map(_.FlightID).toSet
+    val newFlightsById = newFlights.map(x => (x.FlightID, x)).toMap
+
+    val existingFlightIds: Set[Int] = currFlightsById.keys.toSet
+
+    val potentiallyUpdatingFlightIds = existingFlightIds intersect inboundFlightIds
+    val newFlightIds = existingFlightIds diff inboundFlightIds
+
+    val updatedFlightsSet = potentiallyUpdatingFlightIds map (
+      (potentialFlightId: Int) => {
+        val oldFlight = currFlightsById(potentialFlightId)
+        val newFlight = newFlightsById(potentialFlightId)
+        (oldFlight, newFlight)
+      })
+    val updatedFlights =  updatedFlightsSet.filter(x => x._1 != x._2).toVector
+
+    val justNewFlights: List[ApiFlight] = newFlights.filter(newFlightIds contains _.FlightID)
+
+    val changedFlights: scala.Vector[FlightChange] = updatedFlights.map { case (newFlight, oldFlight) => ChangedFlight(newFlight, oldFlight) }
+
+    FlightChanges(changedFlights ++ justNewFlights.map(AddedFlight(_)))
+  }
+
+  def ChangedFlight(flight: ApiFlight, oldFlight: ApiFlight) = FlightChange(Update, flight, Option(oldFlight))
+
+  def AddedFlight(flight: ApiFlight) = FlightChange(Add, flight)
+}
 
 case class ApiFlight(
                       Operator: String,
@@ -161,8 +204,8 @@ trait Api extends FlightsApi with WorkloadsApi {
 
   def airportInfosByAirportCodes(codes: Set[String]): Future[Map[String, AirportInfo]]
 
-//  def crunch(terminalName: TerminalName, queueName: QueueName, workloads: List[Double]): Future[CrunchResult]
-
+  //  def crunch(terminalName: TerminalName, queueName: QueueName, workloads: List[Double]): Future[CrunchResult]
+  //  def getFlightChanges(since: Long, numberOfChanges: Int = 100)
   def getLatestCrunchResult(terminalName: TerminalName, queueName: QueueName): Future[CrunchResult]
 
   def processWork(terminalName: TerminalName, queueName: QueueName, workloads: List[Double], desks: List[Int]): SimulationResult

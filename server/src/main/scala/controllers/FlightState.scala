@@ -4,10 +4,13 @@ package controllers
 import akka.event.LoggingAdapter
 import org.joda.time.LocalDate
 import org.joda.time.format.DateTimeFormat
-import spatutorial.shared.ApiFlight
+import spatutorial.shared._
 
 import scala.language.postfixOps
 import scala.collection.mutable
+
+
+
 
 //todo think about where we really want this flight state, one source of truth?
 trait FlightState {
@@ -18,10 +21,11 @@ trait FlightState {
   def onFlightUpdates(fs: List[ApiFlight], since: String) = {
     val currentFlights = flights
 
-    val loggedFlights = logNewFlightInfo(flights, fs)
-    val withNewFlights = addNewFlights(loggedFlights, fs)
+    val changedFlights = FlightChanges.diffFlightChanges(flights, fs)
+    val withNewFlights = addNewFlights(currentFlights, fs)
     val withoutOldFlights = filterOutFlightsBeforeThreshold(withNewFlights, since)
     flights = withoutOldFlights
+    changedFlights
   }
 
   def addNewFlights(flights: Map[Int, ApiFlight], fs: List[ApiFlight]) = {
@@ -37,16 +41,4 @@ trait FlightState {
     flightsWithOldDropped
   }
 
-  def logNewFlightInfo(flights: Map[Int, ApiFlight], fs: List[ApiFlight]) = {
-    val inboundFlightIds: Set[Int] = fs.map(_.FlightID).toSet
-    val existingFlightIds: Set[Int] = flights.keys.toSet
-
-    val updatingFlightIds = existingFlightIds intersect inboundFlightIds
-    val newFlightIds = existingFlightIds diff inboundFlightIds
-
-    log.info(s"New flights ${fs.filter(newFlightIds contains _.FlightID)}")
-    log.info(s"Old      fl ${flights.filterKeys(updatingFlightIds).values}")
-    log.info(s"Updating fl ${fs.filter(updatingFlightIds contains _.FlightID)}")
-    flights
-  }
 }

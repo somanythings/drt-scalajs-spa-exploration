@@ -122,6 +122,7 @@ case class Workloads(workloads: Map[TerminalName, Map[QueueName, QueueWorkloads]
 }
 
 case class RootModel(
+                      flightChanges: Vector[FlightChange] = Vector.empty,
                       motd: Pot[String] = Empty,
                       workload: Pot[Workloads] = Empty,
                       queueCrunchResults: Map[TerminalName, Map[QueueName, Pot[CrunchResultAndDeskRecs]]] = Map(),
@@ -314,29 +315,31 @@ case class RequestFlights(from: Long, to: Long) extends Action
 
 case class UpdateFlights(flights: Flights) extends Action
 
-class FlightsHandler[M](modelRW: ModelRW[M, Pot[Flights]]) extends LoggingActionHandler(modelRW) {
+class FlightsHandler[M](modelRW: ModelRW[M, (Pot[Flights], Vector[FlightChange])]) extends LoggingActionHandler(modelRW) {
   protected def handle = {
     case RequestFlights(from, to) =>
       log.info(s"client requesting flights $from $to")
       effectOnly(Effect(AjaxClient[Api].flights(from, to).call().map(UpdateFlights)))
     case UpdateFlights(flights) =>
       log.info(s"client got ${flights.flights.length} flights")
-      val result = if (value.isReady) {
-        val oldFlights = value.get
+      val currentFlights = value._1
+      val currentFlightChanges = value._2
+      val result = if (currentFlights.isReady) {
+        val oldFlights: Flights = currentFlights.get
         val oldFlightsSet = oldFlights.flights.toSet
         val newFlightsSet = flights.flights.toSet
         if (oldFlightsSet != newFlightsSet) {
-          val i: Flights = flights
-          val j: List[ApiFlight] = flights.flights
           val codes = flights.flights.map(_.Origin).toSet
-          updated(Ready(flights), Effect(Future(GetAirportInfos(codes))))
+          val oldFlightsByFlightId = oldFlights.flights.map(x => (x.FlightID, x)).toMap
+          val changes = FlightChanges.diffFlightChanges(oldFlightsByFlightId, flights.flights)
+          updated((Ready(flights), changes.flightChanges.toVector ++ currentFlightChanges), Effect(Future(GetAirportInfos(codes))))
         } else {
           log.info("no changes to flights")
           noChange
         }
       } else {
         val codes = flights.flights.map(_.Origin).toSet
-        updated(Ready(flights), Effect(Future(GetAirportInfos(codes))))
+        updated((Ready(flights), Vector.empty), Effect(Future(GetAirportInfos(codes))))
       }
 
       result
@@ -427,7 +430,7 @@ object SPACircuit extends Circuit[RootModel] with ReactConnector[RootModel] {
         m.copy(userDeskRec = v)
       })),
       new SimulationResultHandler(zoomRW(_.simulationResult)((m, v) => m.copy(simulationResult = v))),
-      new FlightsHandler(zoomRW(_.flights)((m, v) => m.copy(flights = v))),
+      new FlightsHandler(zoomRW(m=> (m.flights, m.flightChanges))((m, v) => m.copy(flights = v._1, flightChanges = v._2))),
       new AirportCountryHandler(timeProvider, zoomRW(_.airportInfos)((m, v) => m.copy(airportInfos = v))),
       new AirportConfigHandler(zoomRW(_.airportConfig)((m, v) => m.copy(airportConfig = v)))
     )
