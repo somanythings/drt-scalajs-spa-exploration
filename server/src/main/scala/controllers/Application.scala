@@ -331,6 +331,8 @@ class Application @Inject()(
   }
 
   trait GetFlightsFromActor extends FlightsService {
+    override def getFlightChanges(since: Long, number: Int): Future[List[FlightChange]] = ???
+
     override def getFlights(start: Long, end: Long): Future[List[ApiFlight]] = {
       val flights: Future[Any] = ctrl.flightsActorAskable ? GetFlights
       val fsFuture = flights.collect {

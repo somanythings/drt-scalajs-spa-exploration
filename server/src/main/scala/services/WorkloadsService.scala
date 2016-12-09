@@ -14,10 +14,13 @@ import scala.concurrent.{Await, Future}
 trait FlightsService extends FlightsApi {
   def getFlights(st: Long, end: Long): Future[List[ApiFlight]]
 
+  def getFlightChanges(since: Long, number: Int): Future[List[FlightChange]]
+
   def flights(startTimeEpoch: Long, endTimeEpoch: Long): Flights = {
     val fsFuture = getFlights(startTimeEpoch, endTimeEpoch)
     Flights(Await.result(fsFuture, Duration.Inf))
   }
+
 }
 
 trait WorkloadsService extends WorkloadsApi with WorkloadsCalculator {
