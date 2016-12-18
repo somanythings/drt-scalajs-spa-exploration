@@ -5,6 +5,7 @@ module.exports = {
     "react": require("react"),
     "reactdom": require("react-dom"),
     "spinner": require("react-spinner"),
+    "reacttoastr": require("react-toastr"),
     "popover": require("@terebentina/react-popover")
 }
 

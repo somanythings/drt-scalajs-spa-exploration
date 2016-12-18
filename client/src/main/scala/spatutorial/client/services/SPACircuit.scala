@@ -298,7 +298,7 @@ class FlightsHandler[M](modelRW: ModelRW[M, (Pot[Flights], Vector[FlightChange])
         if (oldFlightsSet != newFlightsSet) {
           val codes = flights.flights.map(_.Origin).toSet
           val oldFlightsByFlightId = oldFlights.flights.map(x => (x.FlightID, x)).toMap
-          val changes = FlightChanges.diffFlightChanges(oldFlightsByFlightId, flights.flights)
+          val changes = FlightChanges.diffFlightChanges(oldFlightsByFlightId, flights.flights, nowProvider _)
           updated((Ready(flights), changes.flightChanges.toVector ++ currentFlightChanges), Effect(Future(GetAirportInfos(codes))))
         } else {
           log.info("no changes to flights")
@@ -311,6 +311,8 @@ class FlightsHandler[M](modelRW: ModelRW[M, (Pot[Flights], Vector[FlightChange])
 
       result
   }
+
+  def nowProvider(): Long = js.Date.now().toLong
 }
 
 class CrunchHandler[M](modelRW: ModelRW[M, (Map[TerminalName, QueueUserDeskRecs], Map[TerminalName, Map[QueueName, Pot[CrunchResultAndDeskRecs]]])])

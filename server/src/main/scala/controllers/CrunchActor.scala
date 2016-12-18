@@ -74,11 +74,13 @@ abstract class CrunchActor(crunchPeriodHours: Int,
         case Nil =>
           replyTo ! NoCrunchAvailable()
         case fs =>
+          log.info(s"Getting cachedCrunch fro ${terminalName}/${queueName}")
           val futCrunch = cacheCrunch(terminalName, queueName)
           //          log.info(s"got keyed thingy ${futCrunch}")
           //todo this is NOT right
           futCrunch.value match {
             case Some(Success(cr)) =>
+              log.info(s"got crunchResult for ${terminalName}/$queueName")
               replyTo ! cr
             case Some(Failure(f)) =>
               log.info(s"unsuccessful crunch here $terminalName/$queueName")

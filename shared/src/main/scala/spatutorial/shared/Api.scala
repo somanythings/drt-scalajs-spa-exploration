@@ -14,6 +14,7 @@ import scala.collection.immutable.{IndexedSeq, Map, Seq}
 
 
 case class FlightChange(reason: String,
+                        changeTime: Long,
                         apiFlight: ApiFlight,
                         optOldFlight: Option[ApiFlight] = None)
 
@@ -24,7 +25,11 @@ object FlightChanges {
   val Update = "Update"
   val Add = "Add"
 
-  def diffFlightChanges(currFlightsById: Map[Int, ApiFlight], newFlights: List[ApiFlight]): FlightChanges = {
+  def diffFlightChanges(currFlightsById: Map[Int, ApiFlight], newFlights: List[ApiFlight], nowProvider: () => Long): FlightChanges = {
+    def ChangedFlight(flight: ApiFlight, oldFlight: ApiFlight) = FlightChange(Update, nowProvider(), flight, Option(oldFlight))
+
+    def AddedFlight(flight: ApiFlight) = FlightChange(Add, nowProvider(), flight)
+
     val inboundFlightIds: Set[Int] = newFlights.map(_.FlightID).toSet
     val newFlightsById = newFlights.map(x => (x.FlightID, x)).toMap
 
@@ -45,12 +50,10 @@ object FlightChanges {
 
     val changedFlights: scala.Vector[FlightChange] = updatedFlights.map { case (newFlight, oldFlight) => ChangedFlight(newFlight, oldFlight) }
 
+
     FlightChanges(changedFlights ++ justNewFlights.map(AddedFlight(_)))
   }
 
-  def ChangedFlight(flight: ApiFlight, oldFlight: ApiFlight) = FlightChange(Update, flight, Option(oldFlight))
-
-  def AddedFlight(flight: ApiFlight) = FlightChange(Add, flight)
 }
 
 case class ApiFlight(
@@ -206,7 +209,7 @@ trait Api extends FlightsApi with WorkloadsApi {
 
   //  def crunch(terminalName: TerminalName, queueName: QueueName, workloads: List[Double]): Future[CrunchResult]
   //  def getFlightChanges(since: Long, numberOfChanges: Int = 100)
-  def getLatestCrunchResult(terminalName: TerminalName, queueName: QueueName): Future[CrunchResult]
+  def getLatestCrunchResult(terminalName: TerminalName, queueName: QueueName): Future[Either[NoCrunchAvailable, CrunchResult]]
 
   def processWork(terminalName: TerminalName, queueName: QueueName, workloads: List[Double], desks: List[Int]): SimulationResult
 

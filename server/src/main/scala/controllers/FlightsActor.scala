@@ -2,7 +2,7 @@ package controllers
 
 import akka.actor._
 import akka.util.Timeout
-import org.joda.time.LocalDate
+import org.joda.time.{DateTime, LocalDate}
 import org.joda.time.format.DateTimeFormat
 import spatutorial.shared.{FlightChanges, FlightChange}
 import spatutorial.shared.FlightsApi.Flights
@@ -16,6 +16,8 @@ case class GetFlightChanges(since: Long, numberRequested: Int)
 
 class FlightsActor(crunchActor: ActorRef) extends Actor with ActorLogging  with FlightState {
   implicit val timeout = Timeout(5 seconds)
+
+  def nowProvider() = DateTime.now().getMillis
 
   var latestChanges : List[FlightChange] = Nil
 

@@ -49,6 +49,8 @@ class ProdCrunchActor(hours: Int, airportConfig: AirportConfig,
                       timeProvider: () => DateTime
                      ) extends CrunchActor(hours, airportConfig, timeProvider) {
 
+  def nowProvider() = DateTime.now().getMillis
+
   def splitRatioProvider = SplitsProvider.splitsForFlight(splitsProviders)
 
   def procTimesProvider(terminalName: TerminalName)(paxTypeAndQueue: PaxTypeAndQueue) = airportConfig.defaultProcessingTimes(terminalName)(paxTypeAndQueue)
@@ -127,7 +129,7 @@ case class ChromaFlightFeed(log: LoggingAdapter, chromaFetcher: ChromaFetcherLik
     ediMapping.map(flights =>
       flights.map(flight => {
         val walkTimeMinutes = 4
-        val pcpTime: Long = org.joda.time.DateTime.parse(flight.SchDT).plusMinutes(walkTimeMinutes).getMillis
+        val pcpTime: Long = DateTime.parse(flight.SchDT).plusMinutes(walkTimeMinutes).getMillis
         ApiFlight(
           Operator = flight.Operator,
           Status = flight.Status, EstDT = flight.EstDT,
@@ -180,7 +182,7 @@ case class LHRLiveFlight(
                           operator: String,
                           from: String,
                           airportName: String,
-                          scheduled: org.joda.time.DateTime,
+                          scheduled: DateTime,
                           estimated: Option[String],
                           touchdown: Option[String],
                           estChox: Option[String],

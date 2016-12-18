@@ -5,3 +5,4 @@ window.Spinner = module.exports.spinner;
 window.React = module.exports.react;
 window.ReactDOM = module.exports.reactdom;
 window.ReactPopover = module.exports.popover;
+window.ReactToastr = module.exports.reacttoastr;

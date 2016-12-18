@@ -17,11 +17,12 @@ trait FlightState {
   def log: LoggingAdapter
 
   var flights = Map[Int, ApiFlight]()
+  def nowProvider(): Long
 
   def onFlightUpdates(fs: List[ApiFlight], since: String) = {
     val currentFlights = flights
 
-    val changedFlights = FlightChanges.diffFlightChanges(flights, fs)
+    val changedFlights = FlightChanges.diffFlightChanges(flights, fs, nowProvider)
     val withNewFlights = addNewFlights(currentFlights, fs)
     val withoutOldFlights = filterOutFlightsBeforeThreshold(withNewFlights, since)
     flights = withoutOldFlights

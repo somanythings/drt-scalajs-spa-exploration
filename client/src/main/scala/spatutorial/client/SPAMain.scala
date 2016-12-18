@@ -13,9 +13,10 @@ import japgolly.scalajs.react.{ReactDOM, _}
 import japgolly.scalajs.react.extra.router._
 import japgolly.scalajs.react.vdom.prefix_<^._
 import org.scalajs.dom
+import spatutorial.client.components.Layout
 import spatutorial.client.components.TableTerminalDeskRecs.{QueueDetailsRow, TerminalUserDeskRecsRow}
 import spatutorial.client.components.DeskRecsTable.UserDeskRecsRow
-import spatutorial.client.components.{DeskRecsChart, GlobalStyles, Layout, MainMenu, QueueUserDeskRecsComponent, TableTerminalDeskRecs, TerminalPage}
+import spatutorial.client.components._
 import spatutorial.client.logger._
 import spatutorial.client.modules.Dashboard.DashboardModels
 import spatutorial.client.modules.FlightsView._
@@ -31,7 +32,6 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSExport
 import scalacss.Defaults._
 import spatutorial.shared.HasAirportConfig
-
 
 
 object TableViewUtils {
@@ -132,6 +132,13 @@ object SPAMain extends js.JSApp {
 
   setInterval(FiniteDuration(10L, SECONDS)) {
     SPACircuit.dispatch(RequestFlights(0, 0))
+  }
+
+  setInterval(FiniteDuration(10L, SECONDS)) {
+    ReactToastrWrapper.ref.foreach(ref => {
+      log.info(s"trying to popup ${ref}")
+      ref.success("Title", "Body")
+    })
   }
 
   // configure the router
