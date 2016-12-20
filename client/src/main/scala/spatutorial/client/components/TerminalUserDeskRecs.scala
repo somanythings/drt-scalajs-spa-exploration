@@ -60,7 +60,7 @@ object TableTerminalDeskRecs {
                               queueName: QueueName
                             )
 
-  case class TerminalUserDeskRecsRow(time: Long, queueDetails: Seq[QueueDetailsRow])
+  case class TerminalUserDeskRecsRow(time: Long, queueDetails: Seq[Option[QueueDetailsRow]])
 
 
   case class Props(
@@ -157,18 +157,21 @@ object TableTerminalDeskRecs {
 
       def renderItem(itemWithIndex: (TerminalUserDeskRecsRow, Int)) = {
         val item = itemWithIndex._1
-        val index = itemWithIndex._2
 
         val time = item.time
-        val windowSize = 60000 * 15
+        val windowSizeInMillis = 60000 * 15
         val flights: Pot[Flights] = p.flights.map(flights =>
-          flights.copy(flights = flights.flights.filter(f => time <= f.PcpTime && f.PcpTime <= (time + windowSize))))
+          flights.copy(flights =
+            flights.flights.filter(
+              f => time <= f.PcpTime && f.PcpTime <= (time + windowSizeInMillis))))
+
         val date: Date = new Date(item.time)
         val formattedDate: String = formatDate(date)
-        val airportInfo: ReactConnectProxy[Map[String, Pot[AirportInfo]]] = p.airportInfos
-        val airportInfoPopover = HoverPopover(formattedDate, flights, airportInfo)
-        val fill = item.queueDetails.flatMap(
-          (q: QueueDetailsRow) => {
+        val queueSpecificCells = item.queueDetails.flatMap {
+          case None => {
+            Seq(<.td(^.colSpan := 5, "Nothing here"))
+          }
+          case Some(q: QueueDetailsRow) => {
             val warningClasses = if (q.waitTimeWithCrunchDeskRec < q.waitTimeWithUserDeskRec) "table-warning" else ""
             val dangerWait = p.airportConfigPot match {
               case Ready(airportConfig) =>
@@ -191,9 +194,18 @@ object TableTerminalDeskRecs {
               qtd(q.waitTimeWithCrunchDeskRec + " mins"),
               qtd(^.cls := dangerWait + " " + warningClasses, q.waitTimeWithUserDeskRec + " mins"))
           }
-        ).toList
-        <.tr(<.td(^.cls := "date-field", airportInfoPopover()) :: fill: _*)
+          case what =>
+            log.error(s"got rhubarb ${what}")
+            Seq()
+        }.toList
+
+        val airportInfo: ReactConnectProxy[Map[String, Pot[AirportInfo]]] = p.airportInfos
+        val airportInfoPopover = HoverPopover(formattedDate, flights, airportInfo)
+
+        <.tr(<.td(^.cls := "date-field", airportInfoPopover()) :: queueSpecificCells: _*)
       }
+
+
       val headerGroupStart = ^.borderLeft := "solid 1px #fff"
       val subHeadingLevel1 = queueNameMappingOrder.flatMap(queueName => {
         val deskUnitLabel = DeskRecsTable.deskUnitLabel(queueName)
@@ -202,7 +214,7 @@ object TableTerminalDeskRecs {
           <.th(headerGroupStart, deskUnitLabel, ^.className := qc, ^.colSpan := 2),
           <.th(headerGroupStart, "Wait Times with", ^.className := qc, ^.colSpan := 2))
       })
-      val subHeadingLevel2: List[TagMod] = queueNameMappingOrder.map( queueName =>
+      val subHeadingLevel2: List[TagMod] = queueNameMappingOrder.map(queueName =>
         List(<.th("Pax"),
           <.th(headerGroupStart, "Required"), <.th("Available"),
           <.th(headerGroupStart, "Recs"), <.th("Available"))

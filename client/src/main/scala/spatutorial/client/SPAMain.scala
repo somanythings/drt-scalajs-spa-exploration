@@ -33,7 +33,6 @@ import scalacss.Defaults._
 import spatutorial.shared.HasAirportConfig
 
 
-
 object TableViewUtils {
 
   val eeadesk: QueueName = "eeaDesk"
@@ -41,10 +40,14 @@ object TableViewUtils {
   val egate: QueueName = "eGate"
 
   def queueNameMappingOrder = eeadesk :: noneeadesk :: egate :: Nil
+
   def queueDisplayName = Map(eeadesk -> "EEA", noneeadesk -> "Non-EEA", egate -> "e-Gates")
 
-  def terminalUserDeskRecsRows(timestamps: Seq[Long], paxload: Map[String, List[Double]], queueCrunchResultsForTerminal: Map[QueueName, Pot[CrunchResultAndDeskRecs]], simulationResult: Map[QueueName, Pot[SimulationResult]]): List[TerminalUserDeskRecsRow] = {
-    val queueRows: List[List[((Long, QueueName), QueueDetailsRow)]] = queueNameMappingOrder.map(queueName => {
+  def terminalUserDeskRecsRows(timestamps: Seq[Long],
+                               paxload: Map[String, List[Double]],
+                               queueCrunchResultsForTerminal: Map[QueueName, Pot[CrunchResultAndDeskRecs]],
+                               simulationResult: Map[QueueName, Pot[SimulationResult]]): List[TerminalUserDeskRecsRow] = {
+    val queueRows: List[((Long, QueueName), Option[QueueDetailsRow])] = queueNameMappingOrder.flatMap(queueName => {
       simulationResult.get(queueName) match {
         case Some(Ready(sr)) =>
           queueDetailsRowsFromNos(queueName, queueNosFromSimulationResult(timestamps, paxload, queueCrunchResultsForTerminal, simulationResult, queueName))
@@ -52,24 +55,24 @@ object TableViewUtils {
           queueCrunchResultsForTerminal.get(queueName) match {
             case Some(Ready(cr)) =>
               queueDetailsRowsFromNos(queueName, queueNosFromCrunchResult(timestamps, paxload, queueCrunchResultsForTerminal, queueName))
-            case _ =>
-              List()
+            case None =>
+              timestamps.map { ts => ((ts, queueName) -> None) }.toList
           }
       }
     })
 
-    val queueRowsByTime = queueRows.flatten.groupBy(tqr => tqr._1._1)
+    val queueRowsByTime = queueRows.groupBy(tqr => tqr._1._1)
 
-    queueRowsByTime.map((queueRows: (Long, List[((Long, QueueName), QueueDetailsRow)])) => {
-      val qr = queueRows._2.map(_._2)
+    queueRowsByTime.map((queueRows: (Long, List[((Long, QueueName), Option[QueueDetailsRow])])) => {
+      val qr: Seq[Option[QueueDetailsRow]] = queueRows._2.map(_._2)
       TerminalUserDeskRecsRow(queueRows._1, qr)
     }).toList.sortWith(_.time < _.time)
   }
 
-  def queueDetailsRowsFromNos(qn: QueueName, queueNos: Seq[List[Long]]): List[((Long, String), QueueDetailsRow)] = {
+  def queueDetailsRowsFromNos(qn: QueueName, queueNos: Seq[List[Long]]): List[((Long, String), Option[QueueDetailsRow])] = {
     queueNos.toList.transpose.zipWithIndex.map {
       case ((timestamp :: pax :: _ :: crunchDeskRec :: userDeskRec :: waitTimeCrunch :: waitTimeUser :: Nil), rowIndex) =>
-        (timestamp, qn) -> QueueDetailsRow(
+        (timestamp, qn) -> Some(QueueDetailsRow(
           timestamp = timestamp,
           pax = pax.toDouble,
           crunchDeskRec = crunchDeskRec.toInt,
@@ -77,7 +80,7 @@ object TableViewUtils {
           waitTimeWithCrunchDeskRec = waitTimeCrunch.toInt,
           waitTimeWithUserDeskRec = waitTimeUser.toInt,
           qn
-        )
+        ))
     }
   }
 

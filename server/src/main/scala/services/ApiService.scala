@@ -147,16 +147,20 @@ trait ActorBackedCrunchService {
 
   def tryCrunch(terminalName: TerminalName, queueName: QueueName): Future[Either[NoCrunchAvailable, CrunchResult]] = {
     log.info("Starting crunch latest request")
-    val result: Future[Any] = crunchActor ? GetLatestCrunch(terminalName, queueName)
-    result.recover {
-      case e: Throwable =>
-        log.error("Crunch not ready ", e)
-        Left(NoCrunchAvailable())
-    }.map {
-      case cr: CrunchResult =>
-        Right(cr)
-      case _ =>
-        Left(NoCrunchAvailable())
+    if (queueName == "nonEeaDesk") {
+      Future(Left(NoCrunchAvailable()) )
+    } else {
+      val result: Future[Any] = crunchActor ? GetLatestCrunch(terminalName, queueName)
+      result.recover {
+        case e: Throwable =>
+          log.error("Crunch not ready ", e)
+          Left(NoCrunchAvailable())
+      }.map {
+        case cr: CrunchResult =>
+          Right(cr)
+        case _ =>
+          Left(NoCrunchAvailable())
+      }
     }
   }
 }
