@@ -3,13 +3,13 @@ package services
 import java.io.InputStream
 import javax.script.{ScriptEngine, ScriptEngineManager}
 
-import org.renjin.sexp.{IntVector, DoubleVector}
+import org.renjin.sexp.{DoubleArrayVector, DoubleVector, IntArrayVector, IntVector}
 import org.slf4j.LoggerFactory
 import spatutorial.shared._
 
 import scala.collection.immutable.Seq
 import scala.collection.immutable.IndexedSeq
-import scala.util.{Success, Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 case class OptimizerConfig(sla: Int)
 
@@ -40,6 +40,10 @@ object TryRenjin {
         engine.put("weight_pax", 0.05)
         engine.put("weight_staff", 3)
         engine.put("weight_sla", 10)
+        log.info("going to run rolling.fair.xmax")
+        engine.eval("rollingfairxmax <- rolling.fair.xmax(w, xmin=xmin, block.size=5, sla=sla, target.width=60, rolling.buffer=60)")
+        val rollingfairxmax: DoubleArrayVector = engine.eval("rollingfairxmax").asInstanceOf[DoubleArrayVector]
+        println(s"rollingfairxmax: $rollingfairxmax")
         log.info("about to crunch in R")
         engine.eval("optimised <- optimise.win(w, xmin=xmin, xmax=xmax, sla=sla, weight.churn=weight_churn, weight.pax=weight_pax, weight.staff=weight_staff, weight.sla=weight_sla)")
         log.info("crunched in R")
