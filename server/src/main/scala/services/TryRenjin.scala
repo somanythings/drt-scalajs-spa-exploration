@@ -22,12 +22,51 @@ object TryRenjin {
     optimizer.crunch(workloads, minDesks, maxDesks, config)
   }
 
+  def php(workloads: Seq[Double], minDesks: Seq[Int], maxDesks: Seq[Int], config: OptimizerConfig) = {
+    val optimizer = Optimizer(engine = manager.getEngineByName("Renjin"))
+    optimizer.php(workloads, minDesks, maxDesks, config)
+  }
+
   def processWork(workloads: Seq[Double], desks: Seq[Int], config: OptimizerConfig): SimulationResult = {
     val optimizer = Optimizer(engine = manager.getEngineByName("Renjin"))
     optimizer.processWork(workloads, desks, config)
   }
 
   case class Optimizer(engine: ScriptEngine) {
+    def php(workloads: Seq[Double], minDesks: Seq[Int], maxDesks: Seq[Int], config: OptimizerConfig) = {
+      val tryResult = Try {
+        loadOptimiserScript
+        initialiseWorkloads(workloads)
+
+        engine.put("xmin", minDesks.toArray)
+        engine.put("sla", config.sla)
+        log.info("going to run rolling.fair.xmax")
+        engine.eval("rollingfairxmax <- rolling.fair.xmax(w, xmin=xmin, block.size=5, sla=sla, target.width=60, rolling.buffer=60)")
+        val rollingfairxmax: DoubleArrayVector = engine.eval("rollingfairxmax").asInstanceOf[DoubleArrayVector]
+        println(s"rollingfairxmax: $rollingfairxmax")
+//        for (i <- rollingfairxmax.toIntArray.toSeq) yield println(s"desk: $i")
+        engine.put("rfxmax", rollingfairxmax.toIntArray)
+        engine.eval("preoptmin <- pre.opt.xmin(user.xmin=xmin, user.xmax=rfxmax)")
+        val preoptmin = engine.eval("preoptmin").asInstanceOf[DoubleArrayVector]
+
+        engine.put("xmax", maxDesks.toArray)
+        engine.put("poxmin", preoptmin.toIntArray)
+        engine.put("sla", config.sla)
+        engine.put("weight_churn", 50)
+        engine.put("weight_pax", 0.05)
+        engine.put("weight_staff", 3)
+        engine.put("weight_sla", 10)
+
+        log.info("about to crunch in R")
+        engine.eval("optimised <- optimise.win(w, xmin=poxmin, xmax=xmax, sla=sla, weight.churn=weight_churn, weight.pax=weight_pax, weight.staff=weight_staff, weight.sla=weight_sla)")
+        log.info("crunched in R")
+        val deskRecs = engine.eval("optimised").asInstanceOf[DoubleVector]
+        val deskRecsScala = (0 until deskRecs.length()) map (deskRecs.getElementAsInt(_))
+        CrunchResult(deskRecsScala, runSimulation(deskRecsScala, "optimised", config))
+      }
+      tryResult
+    }
+
     def crunch(workloads: Seq[Double], minDesks: Seq[Int], maxDesks: Seq[Int], config: OptimizerConfig): Try[CrunchResult] = {
       val tryCrunchRes = Try {
         loadOptimiserScript
@@ -40,10 +79,6 @@ object TryRenjin {
         engine.put("weight_pax", 0.05)
         engine.put("weight_staff", 3)
         engine.put("weight_sla", 10)
-        log.info("going to run rolling.fair.xmax")
-        engine.eval("rollingfairxmax <- rolling.fair.xmax(w, xmin=xmin, block.size=5, sla=sla, target.width=60, rolling.buffer=60)")
-        val rollingfairxmax: DoubleArrayVector = engine.eval("rollingfairxmax").asInstanceOf[DoubleArrayVector]
-        println(s"rollingfairxmax: $rollingfairxmax")
         log.info("about to crunch in R")
         engine.eval("optimised <- optimise.win(w, xmin=xmin, xmax=xmax, sla=sla, weight.churn=weight_churn, weight.pax=weight_pax, weight.staff=weight_staff, weight.sla=weight_sla)")
         log.info("crunched in R")
