@@ -23,7 +23,7 @@ object CrunchStructureTests extends TestSuite {
     "Given a sequence of workloads we should return the midnight on the day of the earliest workload" - {
       val queueWorkloads = Seq((Seq(WL(getMilisFromDate(2016, 11, 1, 13, 0),1.0), WL(getMilisFromDate(2016, 11, 1, 14, 30),1.0), WL(getMilisFromDate(2016, 11, 1, 14, 45), 1.0)), Seq[Pax]()))
 
-      val expected = getMilisFromDate(2016, 11, 1, 0, 0);
+      val expected = getMilisFromDate(2016, 11, 1, 0, 0)
 
       val result = new WorkloadsHelpers{}.midnightBeforeEarliestWorkload(queueWorkloads)
       assert(expected == result)
@@ -55,8 +55,6 @@ object FlightCrunchInteractionTests extends TestSuite {
         case PaxTypeAndQueue(PaxTypes.visaNational, Queues.nonEeaDesk) => 64d / 60d
         case PaxTypeAndQueue(PaxTypes.nonVisaNational, Queues.nonEeaDesk) => 75d / 60d
       }
-
-    override def lastMidnightString: String = "2000-01-01"
   }
 
   def tests = TestSuite {

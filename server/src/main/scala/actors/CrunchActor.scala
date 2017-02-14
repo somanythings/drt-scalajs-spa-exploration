@@ -71,7 +71,7 @@ abstract class CrunchActor(crunchPeriodHours: Int,
 
   def receive = {
     case PerformCrunchOnFlights(newFlights) =>
-      onFlightUpdates(newFlights.toList, lastMidnightString)
+      onFlightUpdates(newFlights.toList, dateToRetainFlightsFrom)
 
       newFlights match {
         case Nil =>
@@ -107,11 +107,6 @@ abstract class CrunchActor(crunchPeriodHours: Int,
       }
     case message =>
       log.error(s"crunchActor received unhandled ${message}")
-  }
-
-  def lastMidnightString: String = {
-    val formatter = DateTimeFormat.forPattern("yyyy-MM-dd")
-    timeProvider().toString(formatter)
   }
 
   def lastMidnight: DateTime = {

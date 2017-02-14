@@ -337,10 +337,14 @@ class Application @Inject()(
       tryCrunch(terminalName, queueName)
     }
   }
+  def lastMidnightString: String = {
+        val formatter = DateTimeFormat.forPattern("yyyy-MM-dd")
+        DateTime.now().toString(formatter)
+  }
 
   trait GetFlightsFromActor extends FlightsService {
     override def getFlights(start: Long, end: Long): Future[List[ApiFlight]] = {
-      val flights: Future[Any] = ctrl.flightsActorAskable ? GetFlights
+      val flights: Future[Any] = ctrl.flightsActorAskable ? GetFlights(lastMidnightString, 1 day)
       val fsFuture = flights.collect {
         case Flights(fs) => fs
       }
