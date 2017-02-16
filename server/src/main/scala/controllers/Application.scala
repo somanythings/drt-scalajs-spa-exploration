@@ -12,6 +12,7 @@ import akka.stream.Materializer
 import akka.stream.actor.ActorSubscriberMessage.OnComplete
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.Timeout
+import autowire.Macros
 import boopickle.Default._
 import com.google.inject.Inject
 import com.typesafe.config.ConfigFactory
@@ -40,7 +41,9 @@ import scala.util.{Failure, Success, Try}
 
 
 object Router extends autowire.Server[ByteBuffer, Pickler, Pickler] {
+  import scala.language.experimental.macros
   override def read[R: Pickler](p: ByteBuffer) = Unpickle[R].fromBytes(p)
+  def myroute[Trait](target: Trait): Router = macro Macros.routeMacro[Trait, ByteBuffer]
 
   override def write[R: Pickler](r: R) = Pickle.intoBytes(r)
 }
