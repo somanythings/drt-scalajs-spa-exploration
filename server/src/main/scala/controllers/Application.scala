@@ -6,7 +6,8 @@ import java.nio.ByteBuffer
 import actors.{CrunchActor, FlightsActor, GetFlights}
 import akka.actor._
 import akka.event._
-import akka.pattern.{AskableActorRef, _}
+import akka.pattern._
+import akka.pattern.AskableActorRef
 import akka.stream.Materializer
 import akka.stream.actor.ActorSubscriberMessage.OnComplete
 import akka.stream.scaladsl.{Sink, Source}
@@ -24,17 +25,15 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import passengersplits.core.PassengerInfoByPortRouter
 import play.api.mvc._
 import play.api.{Configuration, Environment}
-import play.api.mvc.BodyParsers._
 import services._
 import spatutorial.shared.FlightsApi.{Flights, QueueName, TerminalName}
 import spatutorial.shared.{Api, ApiFlight, CrunchResult, FlightsApi, _}
+import views.html.defaultpages.notFound
 
-import scala.collection.immutable.Seq
-
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Future}
 import ExecutionContext.Implicits.global
 
 
@@ -329,14 +328,14 @@ class Application @Inject()(
     flightsActorAskable)
 
 
-
-  lazy val  getFlights = (start: Long, end: Long) => {
-      val flights: Future[Any] = ctrl.flightsActorAskable ? GetFlights
-      val fsFuture = flights.collect {
-        case Flights(fs) => fs
-      }
-      fsFuture
+  lazy val getFlights = (start: Long, end: Long) => {
+    val flights: Future[Any] = ctrl.flightsActorAskable ? GetFlights
+    val fsFuture = flights.collect {
+      case Flights(fs) => fs
+    }
+    fsFuture
   }
+  parse
 
   def flightsSource(prodMock: String, portCode: String): Source[Flights, Cancellable] = {
     val fetcher = prodMock match {
@@ -352,6 +351,7 @@ class Application @Inject()(
         chromaFlightFeed.chromaVanillaFlights().map(Flights(_))
     }
   }
+
 
   val copiedToApiFlights = flightsSource(mockProd, portCode)
 
@@ -383,70 +383,71 @@ class Application @Inject()(
       }
       Ok("")
   }
-}
 
-object AutowireStuff {
-  type FlightsProvider = (Long, Long) => Future[List[ApiFlight]]
 
-  def createApiService(airportConfig: AirportConfig,
-                       system: ActorSystem,
-                       outerGetFlights: FlightsProvider,
-                       splitProviders: List[SplitsProvider],
-                       crunchActorRef: AskableActorRef,
-                       flightsActorAskable: AskableActorRef): ApiService =
-  {
-    implicit val timeout = Timeout(5 seconds)
+  object AutowireStuff {
+    type FlightsProvider = (Long, Long) => Future[List[ApiFlight]]
 
-    trait CrunchFromCache {
-      self: CrunchResultProvider =>
-      implicit val timeout: Timeout = Timeout(5 seconds)
-      val crunchActor: AskableActorRef = crunchActorRef
+    def createApiService(airportConfig: AirportConfig,
+                         system: ActorSystem,
+                         outerGetFlights: FlightsProvider,
+                         splitProviders: List[SplitsProvider],
+                         crunchActorRef: AskableActorRef,
+                         flightsActorAskable: AskableActorRef): ApiService = {
+      implicit val timeout = Timeout(5 seconds)
 
-      def getLatestCrunchResult(terminalName: TerminalName, queueName: QueueName): Future[Either[NoCrunchAvailable, CrunchResult]] = {
-        tryCrunch(terminalName, queueName)
-      }
-    }
-    trait GetFlightsFromActor extends FlightsService {
-      override def getFlights(start: Long, end: Long): Future[List[ApiFlight]] = {
-        val flights: Future[Any] = flightsActorAskable ? GetFlights
-        val fsFuture = flights.collect {
-          case Flights(fs) => fs
+      trait CrunchFromCache {
+        self: CrunchResultProvider =>
+        implicit val timeout: Timeout = Timeout(5 seconds)
+        val crunchActor: AskableActorRef = crunchActorRef
+
+        def getLatestCrunchResult(terminalName: TerminalName, queueName: QueueName): Future[Either[NoCrunchAvailable, CrunchResult]] = {
+          tryCrunch(terminalName, queueName)
         }
-        fsFuture
+      }
+      trait GetFlightsFromActor extends FlightsService {
+        override def getFlights(start: Long, end: Long): Future[List[ApiFlight]] = {
+          val flights: Future[Any] = flightsActorAskable ? GetFlights
+          val fsFuture = flights.collect {
+            case Flights(fs) => fs
+          }
+          fsFuture
+        }
+      }
+
+
+      new ApiService(airportConfig) with GetFlightsFromActor with CrunchFromCache {
+        override def getFlights(st: Long, end: Long): Future[List[ApiFlight]] = outerGetFlights(st, end)
+
+        override implicit val timeout: Timeout = Timeout(5 seconds)
+
+        def actorSystem: ActorSystem = system
+
+        //    override def flightPassengerReporter: ActorRef = ctrl.flightPassengerSplitReporter
+
+        override def splitRatioProvider = SplitsProvider.splitsForFlight(splitProviders)
+
+        override def procTimesProvider(terminalName: TerminalName)(paxTypeAndQueue: PaxTypeAndQueue) = airportConfig.defaultProcessingTimes(terminalName)(paxTypeAndQueue)
       }
     }
 
+    def autowireApi(apiService: ApiService)(path: String) = Action.async(parse.raw) {
+      implicit request =>
+        println(s"Request path: $path")
 
-    new ApiService(airportConfig) with GetFlightsFromActor with CrunchFromCache {
-      override def getFlights(st: Long, end: Long): Future[List[ApiFlight]] =  outerGetFlights(st, end)
+        // get the request body as ByteString
+        val b = request.body.asBytes(parse.UNLIMITED).get
 
-      override implicit val timeout: Timeout = Timeout(5 seconds)
-
-      def actorSystem: ActorSystem = system
-
-      //    override def flightPassengerReporter: ActorRef = ctrl.flightPassengerSplitReporter
-
-      override def splitRatioProvider = SplitsProvider.splitsForFlight(splitProviders)
-
-      override def procTimesProvider(terminalName: TerminalName)(paxTypeAndQueue: PaxTypeAndQueue) = airportConfig.defaultProcessingTimes(terminalName)(paxTypeAndQueue)
+        // call Autowire route
+        Router.route[Api](apiService)(
+          autowire.Core.Request(path.split("/"), Unpickle[Map[String, ByteBuffer]].fromBytes(b.asByteBuffer))
+        ).map(buffer => {
+          val data = Array.ofDim[Byte](buffer.remaining())
+          buffer.get(data)
+          Results.Ok(data)
+        })
     }
-  }
 
-  def autowireApi(apiService: ApiService)(path: String) = Action.async(parse.raw) {
-    implicit request =>
-      println(s"Request path: $path")
-
-      // get the request body as ByteString
-      val b = request.body.asBytes(parse.UNLIMITED).get
-
-      // call Autowire route
-      Router.route[Api](apiService)(
-        autowire.Core.Request(path.split("/"), Unpickle[Map[String, ByteBuffer]].fromBytes(b.asByteBuffer))
-      ).map(buffer => {
-        val data = Array.ofDim[Byte](buffer.remaining())
-        buffer.get(data)
-        Results.Ok(data)
-      })
   }
 
 }
