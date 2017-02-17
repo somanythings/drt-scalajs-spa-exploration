@@ -433,7 +433,7 @@ object AutowireStuff {
     }
   }
 
-  def autowireApi(apiService: ApiService)(path: String) = Action.async(parse.raw) {
+  def autowireApi(apiService: ApiService)(path: String): Action[RawBuffer] = Action.async(parse.raw) {
     implicit request =>
       println(s"Request path: $path")
 
@@ -442,7 +442,10 @@ object AutowireStuff {
 
       // call Autowire route
       Router.route[Api](apiService)(
-        autowire.Core.Request(path.split("/"), Unpickle[Map[String, ByteBuffer]].fromBytes(b.asByteBuffer))
+        {
+          println(("bodyBytes", b))
+          autowire.Core.Request(path.split("/"), Unpickle[Map[String, ByteBuffer]].fromBytes(b.asByteBuffer))
+        }
       ).map(buffer => {
         val data = Array.ofDim[Byte](buffer.remaining())
         buffer.get(data)
