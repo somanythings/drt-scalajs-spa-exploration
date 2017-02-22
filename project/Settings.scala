@@ -53,7 +53,7 @@ object Settings {
   ))
 
   /** Dependencies only used by the JVM project */
-  val jvmDependencies = Def.setting((List(
+  val jvmDependencies = Def.setting(List(
     "io.spray" % "spray-caching_2.11" % "1.3.4",
     "org.specs2" %% "specs2-core" % "3.7" % Test,
     "uk.gov.homeoffice.borderforce" %% "chroma-live" % "1.0",
@@ -63,6 +63,8 @@ object Settings {
     "com.typesafe.akka" %% "akka-testkit" % "2.4.9" % "test",
     "com.typesafe.akka" %% "akka-stream-testkit" % "2.4.9" % "test",
     "com.typesafe.akka" %% "akka-persistence" % "2.4.11",
+    "com.typesafe.play" %% "play-ws" % "2.5.3",
+    "io.spray" %% "spray-client" % versions.sprayVersion,
     "org.iq80.leveldb" % "leveldb" % "0.7",
     "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
     "com.lihaoyi" %%% "utest" % versions.uTest % Test,
@@ -72,7 +74,7 @@ object Settings {
       "io.spray" %% "spray-routing" % versions.sprayVersion,
       "io.spray" %% "spray-json" % "1.3.2",
       "com.typesafe" % "config" % "1.3.0"
-    )))
+    ))
 
 
   /** Dependencies only used by the JS project (note the use of %%% instead of %%) */
