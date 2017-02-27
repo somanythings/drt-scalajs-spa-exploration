@@ -1,6 +1,8 @@
 import sbt.Keys._
 import sbt.Project.projectToRef
 
+javaHome := Some(file("/Library/Java/JavaVirtualMachines/jdk1.7.0_80.jdk/Contents/Home"))
+
 // a special crossProject for configuring a JS/JVM/shared structure
 lazy val shared = (crossProject.crossType(CrossType.Pure) in file("shared"))
   .settings(
