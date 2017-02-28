@@ -4,4 +4,5 @@ import java.util.UUID
 
 import spatutorial.shared.FlightsApi.{QueueName, TerminalName}
 
-case class StaffMovement(terminalName: TerminalName = "", reason: String, time: MilliDate, delta: Int, uUID: UUID, queue: Option[QueueName] = None)
+case class StaffMovement(reason: String, time: MilliDate, delta: Int, uUID: UUID, queue: Option[QueueName] = None)
+//case class StaffMovement(terminalName: TerminalName = "", reason: String, time: MilliDate, delta: Int, uUID: UUID, queue: Option[QueueName] = None)

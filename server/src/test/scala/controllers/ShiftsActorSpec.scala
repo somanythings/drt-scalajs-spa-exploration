@@ -66,7 +66,7 @@ class ShiftsActorSpec extends Specification {
       val testKit2 = getTestKit
       val actor = testKit2.getActor
       actor ! "first message"
-      
+
       val result = testKit2.getStateAndShutdown(actor)
       result == "first message"
     }
