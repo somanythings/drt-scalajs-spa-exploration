@@ -108,6 +108,7 @@ lazy val server = (project in file("server"))
     testFrameworks += new TestFramework("utest.runner.Framework"),
     resolvers += "BeDataDriven" at "https://nexus.bedatadriven.com/content/groups/public",
     resolvers += "release" at "https://artifactory.digital.homeoffice.gov.uk/artifactory/libs-release-local",
+    resolvers += Resolver.mavenLocal,
     resolvers += Resolver.defaultLocal,
     publishArtifact in(Compile, packageBin) := false,
     // Disable scaladoc generation for this project (useless)
