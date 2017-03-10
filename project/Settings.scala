@@ -53,7 +53,7 @@ object Settings {
   ))
 
   /** Dependencies only used by the JVM project */
-  val jvmDependencies = Def.setting((List(
+  val jvmDependencies = Def.setting(List(
     "io.spray" % "spray-caching_2.11" % "1.3.4",
     "org.specs2" %% "specs2-core" % "3.7" % Test,
     "uk.gov.homeoffice.borderforce" %% "chroma-live" % "1.0",
@@ -67,12 +67,14 @@ object Settings {
     "org.fusesource.leveldbjni" % "leveldbjni-all" % "1.8",
     "com.lihaoyi" %%% "utest" % versions.uTest % Test,
     "org.renjin" % "renjin-script-engine" % "0.8.2195",
-    "joda-time" % "joda-time" % "2.9.4") :::
+    "joda-time" % "joda-time" % "2.9.4",
+    "org.pac4j" % "pac4j-saml" % "2.0.0-RC1"
+  ) :::
     List("io.spray" %% "spray-client" % versions.sprayVersion,
       "io.spray" %% "spray-routing" % versions.sprayVersion,
       "io.spray" %% "spray-json" % "1.3.2",
       "com.typesafe" % "config" % "1.3.0"
-    )))
+    ))
 
 
   /** Dependencies only used by the JS project (note the use of %%% instead of %%) */
