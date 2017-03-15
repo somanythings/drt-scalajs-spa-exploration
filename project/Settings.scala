@@ -78,6 +78,7 @@ object Settings {
     "com.amazonaws" % "aws-java-sdk" % "1.11.89",
     "com.mfglabs" %% "commons-aws" % "0.10.0",
     "org.apache.commons" % "commons-csv" % "1.4",
+    "org.opensaml" % "opensaml" % "2.6.1",
     "joda-time" % "joda-time" % "2.9.4",
     "org.pac4j" % "pac4j-saml" % "2.0.0-RC1"
   ) :::
