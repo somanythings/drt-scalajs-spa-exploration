@@ -79,8 +79,15 @@ object Settings {
     "com.mfglabs" %% "commons-aws" % "0.10.0",
     "org.apache.commons" % "commons-csv" % "1.4",
     "org.opensaml" % "opensaml" % "2.6.1",
-    "joda-time" % "joda-time" % "2.9.4",
-    "org.pac4j" % "pac4j-saml" % "2.0.0-RC1"
+    "joda-time" % "joda-time" % "2.9.4"/*,
+
+    "org.slf4j" % "slf4j-api" % "1.7.7",
+
+    "org.slf4j" % "slf4j-log4j12" % "1.7.7",
+    "log4j" % "log4j" % "1.2.17"*/
+
+    /*,
+    "org.pac4j" % "pac4j-saml" % "2.0.0-RC1"*/
   ) :::
     List("io.spray" %% "spray-client" % versions.sprayVersion,
       "io.spray" %% "spray-routing" % versions.sprayVersion,

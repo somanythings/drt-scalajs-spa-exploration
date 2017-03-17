@@ -29,7 +29,7 @@ import org.w3c.dom.Element
 class LGWFeedSpec extends TestKit(ActorSystem("testActorSystem", ConfigFactory.empty())) with SpecificationLike {
   //  val tokenScope = s"http://${xxx}.servicebus.windows.net/partners/${yyy}/to"
   //  val httpPostUri = s"https://${xxx}-sb.accesscontrol.windows.net/v2/OAuth2-13"
-  val acsTokenServiceGrant = "urn:oasis:names:tc:SAML:2.0:assertion"
+//  val acsTokenServiceGrant = "urn:oasis:names:tc:SAML:2.0:assertion"
 
   //http://stackoverflow.com/questions/11952274/how-can-i-create-keystore-from-an-existing-certificate-abc-crt-and-abc-key-fil
 
