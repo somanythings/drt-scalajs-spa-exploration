@@ -1,4 +1,12 @@
-# Scala.js SPA-tutorial
+# DRT Dynamic Response Tool
+
+
+This project is a tool used by UK Borderforce to help ensure sufficient resources are available at the border to deal 
+with anticipated demand. 
+It is the latest (as of Mar 2017) iteration of a tool to tackle this lofty goal. This repo replaces an earlier, PHP, database
+and Scala set of projects. 
+We began from the ground up here, consolidating back into a monolith per port. We'll cover the decisions in more detail in 
+(Architectural Decision Records)[ADR/index.md]
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ochrons/scalajs-spa-tutorial?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![Scala.js](https://www.scala-js.org/assets/badges/scalajs-0.6.8.svg)](https://www.scala-js.org)
